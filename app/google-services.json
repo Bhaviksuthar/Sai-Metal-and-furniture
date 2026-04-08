@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "847158443831",
+    "project_id": "saimetal-c52ee",
+    "storage_bucket": "saimetal-c52ee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847158443831:android:4510a10f43e00c200024b2",
+        "android_client_info": {
+          "package_name": "com.saimetal.furniture"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4gS29U-vLO048U-FVUnYbfe4HYZ9NnDw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
