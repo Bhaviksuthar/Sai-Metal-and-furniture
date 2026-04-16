@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Checkroom
 import androidx.compose.material.icons.rounded.Construction
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.MeetingRoom
 import androidx.compose.material.icons.rounded.Stairs
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.saimetal.furniture.data.model.BillingRecord
 import com.saimetal.furniture.data.model.DashboardMetric
 import com.saimetal.furniture.data.model.GalleryItem
@@ -108,6 +110,32 @@ fun GalleryCard(item: GalleryItem, modifier: Modifier = Modifier) {
         colors = CardDefaults.cardColors(containerColor = Color(item.accent))
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
+            if (item.imageUrl.isNotBlank()) {
+                AsyncImage(
+                    model = item.imageUrl,
+                    contentDescription = item.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(168.dp)
+                        .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp)
+                        .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Image,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.72f),
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(14.dp))
             Text(text = item.category, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.84f))
             Spacer(modifier = Modifier.height(10.dp))
             Text(text = item.title, style = MaterialTheme.typography.titleLarge, color = Color.White)

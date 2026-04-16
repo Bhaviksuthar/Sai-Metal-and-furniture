@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +26,9 @@ import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Message
 import androidx.compose.material.icons.rounded.Payments
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -36,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -279,8 +284,7 @@ private fun AdminLoginScreen(viewModel: SaiMetalViewModel, modifier: Modifier = 
                     Icon(Icons.Rounded.AdminPanelSettings, contentDescription = null, tint = Copper)
                 }
                 Text("Owner Login", style = MaterialTheme.typography.headlineMedium)
-                Text("Demo login: owner@sai / 123456", style = MaterialTheme.typography.bodyMedium)
-                Text("Firebase login: use the email/password user created in Firebase Authentication.", style = MaterialTheme.typography.bodyMedium)
+                Text("Sign in with the admin email/password account created in Firebase Authentication.", style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Username or email") })
                 OutlinedTextField(
                     value = password,
@@ -318,7 +322,7 @@ private fun AdminDashboardScreen(viewModel: SaiMetalViewModel, modifier: Modifie
     ) {
         SectionTitle(
             title = "Admin Dashboard",
-            subtitle = "Owners can manage works, inquiries, and billing from one place."
+            subtitle = "Owners can manage works, check added items, update details, delete entries, and track billing from one place."
         )
         viewModel.metrics.forEach { metric ->
             MetricCard(metric = metric)
@@ -362,8 +366,57 @@ private fun AdminDashboardScreen(viewModel: SaiMetalViewModel, modifier: Modifie
             minLines = 3,
             label = { Text("Description") }
         )
-        Button(onClick = { viewModel.addGalleryWork() }, modifier = Modifier.fillMaxWidth()) {
-            Text("Save work to gallery")
+        OutlinedTextField(
+            value = viewModel.workDraft.imageUrl,
+            onValueChange = { viewModel.updateWorkDraft { copy(imageUrl = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Work image URL") }
+        )
+        Text(
+            text = viewModel.adminWorkMessage,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = { viewModel.addGalleryWork() }, modifier = Modifier.weight(1f)) {
+                Text(if (viewModel.workDraft.id.isBlank()) "Save work" else "Update work")
+            }
+            OutlinedButton(onClick = { viewModel.clearWorkDraft() }, modifier = Modifier.weight(1f)) {
+                Text("Clear form")
+            }
+        }
+        HorizontalDivider()
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.Image, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Manage Added Works", style = MaterialTheme.typography.titleLarge)
+        }
+        viewModel.gallery.forEach { item ->
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(item.title, style = MaterialTheme.typography.titleMedium)
+                    Text("${item.category} - ${item.location}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(item.description, style = MaterialTheme.typography.bodyMedium)
+                    if (item.imageUrl.isNotBlank()) {
+                        Text("Image: ${item.imageUrl}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(onClick = { viewModel.editGalleryWork(item) }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Rounded.Edit, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Edit")
+                        }
+                        OutlinedButton(onClick = { viewModel.deleteGalleryWork(item.id) }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Rounded.Delete, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Delete")
+                        }
+                    }
+                }
+            }
         }
         HorizontalDivider()
         Row(verticalAlignment = Alignment.CenterVertically) {

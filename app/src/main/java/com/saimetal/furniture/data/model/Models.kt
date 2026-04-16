@@ -18,7 +18,8 @@ data class GalleryItem(
     val priceRange: String,
     val completionDays: String,
     val tags: List<String>,
-    val accent: Long
+    val accent: Long,
+    val imageUrl: String = ""
 )
 
 data class Inquiry(
@@ -57,10 +58,12 @@ data class QuoteDraft(
 )
 
 data class WorkDraft(
+    val id: String = "",
     val title: String = "",
     val category: String = "",
     val location: String = "",
     val priceRange: String = "",
     val duration: String = "",
-    val description: String = ""
+    val description: String = "",
+    val imageUrl: String = ""
 )

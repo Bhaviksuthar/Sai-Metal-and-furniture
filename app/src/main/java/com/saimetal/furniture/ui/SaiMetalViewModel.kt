@@ -36,10 +36,13 @@ class SaiMetalViewModel(
     var adminLoggedIn by mutableStateOf(false)
         private set
 
-    var adminLoginMessage by mutableStateOf("Use demo login or Firebase admin email/password.")
+    var adminLoginMessage by mutableStateOf("Sign in with your Firebase Authentication admin email and password.")
         private set
 
     var adminLoginInProgress by mutableStateOf(false)
+        private set
+
+    var adminWorkMessage by mutableStateOf("Manage gallery works from here.")
         private set
 
     var firebaseStatus by mutableStateOf(
@@ -83,23 +86,50 @@ class SaiMetalViewModel(
     fun addGalleryWork() {
         if (workDraft.title.isBlank() || workDraft.category.isBlank()) return
         val currentDraft = workDraft
-        gallery.add(
-            0,
-            GalleryItem(
-                id = "W-${gallery.size + 1}",
-                title = currentDraft.title,
-                category = currentDraft.category,
-                location = currentDraft.location.ifBlank { "Sai Workshop" },
-                description = currentDraft.description.ifBlank { "Custom-built project added by admin." },
-                priceRange = currentDraft.priceRange.ifBlank { "Price on request" },
-                completionDays = currentDraft.duration.ifBlank { "As per project scope" },
-                tags = listOf("Fresh upload", "Admin added", currentDraft.category),
-                accent = 0xFF6B4F3A
+        if (currentDraft.id.isBlank()) {
+            gallery.add(
+                0,
+                GalleryItem(
+                    id = "W-${gallery.size + 1}",
+                    title = currentDraft.title,
+                    category = currentDraft.category,
+                    location = currentDraft.location.ifBlank { "Sai Workshop" },
+                    description = currentDraft.description.ifBlank { "Custom-built project added by admin." },
+                    priceRange = currentDraft.priceRange.ifBlank { "Price on request" },
+                    completionDays = currentDraft.duration.ifBlank { "As per project scope" },
+                    tags = listOf("Fresh upload", "Admin added", currentDraft.category),
+                    accent = 0xFF6B4F3A,
+                    imageUrl = currentDraft.imageUrl
+                )
             )
-        )
+            adminWorkMessage = "New work added successfully."
+        } else {
+            val index = gallery.indexOfFirst { it.id == currentDraft.id }
+            if (index >= 0) {
+                gallery[index] = GalleryItem(
+                    id = currentDraft.id,
+                    title = currentDraft.title,
+                    category = currentDraft.category,
+                    location = currentDraft.location.ifBlank { "Sai Workshop" },
+                    description = currentDraft.description.ifBlank { "Custom-built project updated by admin." },
+                    priceRange = currentDraft.priceRange.ifBlank { "Price on request" },
+                    completionDays = currentDraft.duration.ifBlank { "As per project scope" },
+                    tags = listOf("Updated", "Admin managed", currentDraft.category),
+                    accent = gallery[index].accent,
+                    imageUrl = currentDraft.imageUrl
+                )
+            }
+            adminWorkMessage = "Work updated successfully."
+        }
         workDraft = WorkDraft()
         viewModelScope.launch {
-            runCatching { firebaseRepository?.addGalleryWork(currentDraft) }
+            runCatching {
+                if (currentDraft.id.isBlank()) {
+                    firebaseRepository?.addGalleryWork(currentDraft)
+                } else {
+                    firebaseRepository?.updateGalleryWork(currentDraft)
+                }
+            }
         }
     }
 
@@ -107,15 +137,9 @@ class SaiMetalViewModel(
         val normalizedUsername = username.trim()
         val normalizedPassword = password.trim()
 
-        if (normalizedUsername == "owner@sai" && normalizedPassword == "123456") {
-            adminLoggedIn = true
-            adminLoginMessage = "Logged in with demo admin account."
-            return
-        }
-
         if (firebaseRepository == null) {
             adminLoggedIn = false
-            adminLoginMessage = "Invalid demo login. Use owner@sai / 123456."
+            adminLoginMessage = "Firebase is not enabled for admin login yet."
             return
         }
 
@@ -129,9 +153,39 @@ class SaiMetalViewModel(
                 adminLoginMessage = "Logged in with Firebase admin account."
             } else {
                 firebaseStatus = "Firebase login failed"
-                adminLoginMessage = "Login failed. Use a Firebase Authentication email/password user, or use owner@sai / 123456 for demo mode."
+                adminLoginMessage = "Login failed. Create a valid email/password admin user in Firebase Authentication and sign in with that account."
             }
         }
+    }
+
+    fun editGalleryWork(item: GalleryItem) {
+        workDraft = WorkDraft(
+            id = item.id,
+            title = item.title,
+            category = item.category,
+            location = item.location,
+            priceRange = item.priceRange,
+            duration = item.completionDays,
+            description = item.description,
+            imageUrl = item.imageUrl
+        )
+        adminWorkMessage = "Editing ${item.title}."
+    }
+
+    fun deleteGalleryWork(id: String) {
+        gallery.removeAll { it.id == id }
+        if (workDraft.id == id) {
+            workDraft = WorkDraft()
+        }
+        adminWorkMessage = "Work deleted."
+        viewModelScope.launch {
+            runCatching { firebaseRepository?.deleteGalleryWork(id) }
+        }
+    }
+
+    fun clearWorkDraft() {
+        workDraft = WorkDraft()
+        adminWorkMessage = "Ready to add a new work item."
     }
 
     private fun refreshFromFirebase() {

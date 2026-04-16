@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Handyman
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material3.Card
@@ -68,7 +68,9 @@ fun AboutScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
             Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 androidx.compose.foundation.layout.Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     InfoRow(Icons.Rounded.Handyman, "Expertise", "Custom metal fabrication, modular furniture, and commercial interiors.")
-                    InfoRow(Icons.Rounded.Place, "Service Area", "South Gujarat, including Surat, Navsari, Bardoli, and nearby towns.")
+                    InfoRow(Icons.Rounded.Groups, "Owners", "Ramesh Suthar, Jitu Suthar, Himmat Suthar")
+                    InfoRow(Icons.Rounded.Place, "Address", "B-6 Sainath Industrial Society, Bhatar Road, beside CNG pump, Surat, Gujarat, 395017")
+                    InfoRow(Icons.Rounded.Place, "Service Area", "Surat and surrounding Gujarat project locations.")
                     InfoRow(Icons.Rounded.CheckCircle, "Why Choose Us", "On-site measurement, tailored designs, durable materials, and neat finishing.")
                     InfoRow(Icons.Rounded.Payments, "Working Style", "Quotation first, milestone billing, and delivery updates for each project.")
                 }
@@ -79,7 +81,7 @@ fun AboutScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
                 androidx.compose.foundation.layout.Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("System status", style = MaterialTheme.typography.titleLarge)
                     Text(viewModel.firebaseStatus, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
-                    Text("This screen is ready for business story, team photos, reviews, and certification details.", style = MaterialTheme.typography.bodyMedium)
+                    Text("Sai Metal And Furniture specializes in all types of metal and furniture works for homes, offices, shops, and custom fabrication projects.", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

@@ -31,10 +31,10 @@ class LocalSaiRepository : SaiRepository {
     )
 
     override fun getGallery(): List<GalleryItem> = listOf(
-        GalleryItem("1", "Laser Cut Main Gate", "Metal Works", "Surat", "Powder-coated MS gate with geometric CNC cut pattern and side wicket door.", "Rs 55,000 - Rs 72,000", "8-10 days", listOf("Premium finish", "Outdoor", "Custom design"), 0xFF7A4B2A),
-        GalleryItem("2", "Modern King Bed Set", "Furniture", "Navsari", "Metal and laminate bed with hydraulic storage and matching side units.", "Rs 38,000 - Rs 49,000", "6-8 days", listOf("Bedroom", "Storage", "Laminate"), 0xFF355C4A),
-        GalleryItem("3", "Stair Railing Installation", "Metal Works", "Bardoli", "Matte black stair railing with wood-top handrest for duplex interiors.", "Rs 24,000 - Rs 34,000", "5-7 days", listOf("Indoor", "Safety", "Elegant"), 0xFF45546E),
-        GalleryItem("4", "Showroom Display Counter", "Commercial", "Vapi", "Fabricated counter and wall display furniture with integrated storage.", "Rs 60,000 - Rs 85,000", "10-14 days", listOf("Retail", "Storage", "Custom size"), 0xFF735A2F)
+        GalleryItem("1", "Laser Cut Main Gate", "Metal Works", "Surat", "Powder-coated MS gate with geometric CNC cut pattern and side wicket door.", "Rs 55,000 - Rs 72,000", "8-10 days", listOf("Premium finish", "Outdoor", "Custom design"), 0xFF7A4B2A, ""),
+        GalleryItem("2", "Modern King Bed Set", "Furniture", "Navsari", "Metal and laminate bed with hydraulic storage and matching side units.", "Rs 38,000 - Rs 49,000", "6-8 days", listOf("Bedroom", "Storage", "Laminate"), 0xFF355C4A, ""),
+        GalleryItem("3", "Stair Railing Installation", "Metal Works", "Bardoli", "Matte black stair railing with wood-top handrest for duplex interiors.", "Rs 24,000 - Rs 34,000", "5-7 days", listOf("Indoor", "Safety", "Elegant"), 0xFF45546E, ""),
+        GalleryItem("4", "Showroom Display Counter", "Commercial", "Vapi", "Fabricated counter and wall display furniture with integrated storage.", "Rs 60,000 - Rs 85,000", "10-14 days", listOf("Retail", "Storage", "Custom size"), 0xFF735A2F, "")
     )
 
     override fun getInquiries(): List<Inquiry> = listOf(
@@ -84,7 +84,8 @@ data class FirebaseGalleryItem(
     val priceRange: String = "",
     val completionDays: String = "",
     val tags: List<String> = emptyList(),
-    val accent: Long = 0xFF7A4B2A
+    val accent: Long = 0xFF7A4B2A,
+    val imageUrl: String = ""
 )
 
 data class FirebaseBillingRecord(
@@ -143,9 +144,34 @@ class FirebaseSaiRepository : SaiRepository {
             priceRange = draft.priceRange.ifBlank { "Price on request" },
             completionDays = draft.duration.ifBlank { "As per project scope" },
             tags = listOf("Fresh upload", "Admin added", draft.category),
-            accent = 0xFF6B4F3A
+            accent = 0xFF6B4F3A,
+            imageUrl = draft.imageUrl
         )
         document.set(payload).await()
+    }
+
+    suspend fun updateGalleryWork(draft: WorkDraft) {
+        val db = firestore ?: return
+        if (draft.id.isBlank() || draft.title.isBlank()) return
+        val payload = FirebaseGalleryItem(
+            id = draft.id,
+            title = draft.title,
+            category = draft.category,
+            location = draft.location.ifBlank { "Sai Workshop" },
+            description = draft.description.ifBlank { "Custom-built project updated by admin." },
+            priceRange = draft.priceRange.ifBlank { "Price on request" },
+            completionDays = draft.duration.ifBlank { "As per project scope" },
+            tags = listOf("Updated", "Admin managed", draft.category),
+            accent = 0xFF6B4F3A,
+            imageUrl = draft.imageUrl
+        )
+        db.collection("gallery_items").document(draft.id).set(payload).await()
+    }
+
+    suspend fun deleteGalleryWork(id: String) {
+        val db = firestore ?: return
+        if (id.isBlank()) return
+        db.collection("gallery_items").document(id).delete().await()
     }
 
     suspend fun loadDashboardBundle(): DashboardBundle {
@@ -164,7 +190,7 @@ class FirebaseSaiRepository : SaiRepository {
             .documents
             .mapNotNull { snapshot ->
                 snapshot.toObject<FirebaseGalleryItem>()?.let {
-                    GalleryItem(it.id, it.title, it.category, it.location, it.description, it.priceRange, it.completionDays, it.tags, it.accent)
+                    GalleryItem(it.id, it.title, it.category, it.location, it.description, it.priceRange, it.completionDays, it.tags, it.accent, it.imageUrl)
                 }
             }
             .ifEmpty { fallback.getGallery() }
