@@ -36,6 +36,12 @@ class SaiMetalViewModel(
     var adminLoggedIn by mutableStateOf(false)
         private set
 
+    var adminLoginMessage by mutableStateOf("Use demo login or Firebase admin email/password.")
+        private set
+
+    var adminLoginInProgress by mutableStateOf(false)
+        private set
+
     var firebaseStatus by mutableStateOf(
         if (firebaseRepository?.isFirebaseConfigured() == true) "Firebase ready" else "Demo data mode"
     )
@@ -98,13 +104,33 @@ class SaiMetalViewModel(
     }
 
     fun loginAdmin(username: String, password: String) {
-        if (firebaseRepository == null) {
-            adminLoggedIn = username == "owner@sai" && password == "123456"
+        val normalizedUsername = username.trim()
+        val normalizedPassword = password.trim()
+
+        if (normalizedUsername == "owner@sai" && normalizedPassword == "123456") {
+            adminLoggedIn = true
+            adminLoginMessage = "Logged in with demo admin account."
             return
         }
+
+        if (firebaseRepository == null) {
+            adminLoggedIn = false
+            adminLoginMessage = "Invalid demo login. Use owner@sai / 123456."
+            return
+        }
+
         viewModelScope.launch {
-            adminLoggedIn = firebaseRepository.signInAdmin(username, password)
-            firebaseStatus = if (adminLoggedIn) "Connected to Firebase Auth" else "Firebase login failed"
+            adminLoginInProgress = true
+            adminLoginMessage = "Signing in..."
+            adminLoggedIn = firebaseRepository.signInAdmin(normalizedUsername, normalizedPassword)
+            adminLoginInProgress = false
+            if (adminLoggedIn) {
+                firebaseStatus = "Connected to Firebase Auth"
+                adminLoginMessage = "Logged in with Firebase admin account."
+            } else {
+                firebaseStatus = "Firebase login failed"
+                adminLoginMessage = "Login failed. Use a Firebase Authentication email/password user, or use owner@sai / 123456 for demo mode."
+            }
         }
     }
 

@@ -33,6 +33,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -278,15 +279,27 @@ private fun AdminLoginScreen(viewModel: SaiMetalViewModel, modifier: Modifier = 
                     Icon(Icons.Rounded.AdminPanelSettings, contentDescription = null, tint = Copper)
                 }
                 Text("Owner Login", style = MaterialTheme.typography.headlineMedium)
-                Text("Demo credentials: owner@sai / 123456", style = MaterialTheme.typography.bodyMedium)
-                OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Username") })
+                Text("Demo login: owner@sai / 123456", style = MaterialTheme.typography.bodyMedium)
+                Text("Firebase login: use the email/password user created in Firebase Authentication.", style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Username or email") })
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password") },
                     visualTransformation = PasswordVisualTransformation()
                 )
-                Button(onClick = { viewModel.loginAdmin(username, password) }, modifier = Modifier.fillMaxWidth()) {
+                if (viewModel.adminLoginInProgress) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                Text(
+                    text = viewModel.adminLoginMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Button(
+                    onClick = { viewModel.loginAdmin(username, password) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Enter admin panel")
                 }
             }

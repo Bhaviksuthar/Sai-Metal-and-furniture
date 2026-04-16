@@ -65,7 +65,7 @@ fun SaiMetalApp(viewModel: SaiMetalViewModel = viewModel()) {
                     Tab(
                         selected = currentRoute == destination.route,
                         onClick = { currentRoute = destination.route },
-                        label = { Text(destination.label) }
+                        text = { Text(destination.label) }
                     )
                 }
             }
