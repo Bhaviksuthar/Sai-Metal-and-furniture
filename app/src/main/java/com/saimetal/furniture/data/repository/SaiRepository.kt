@@ -13,6 +13,7 @@ import com.saimetal.furniture.data.model.DashboardMetric
 import com.saimetal.furniture.data.model.GalleryItem
 import com.saimetal.furniture.data.model.Inquiry
 import com.saimetal.furniture.data.model.QuoteDraft
+import com.saimetal.furniture.data.model.ServiceDraft
 import com.saimetal.furniture.data.model.ServiceCategory
 import com.saimetal.furniture.data.model.WorkDraft
 import kotlinx.coroutines.tasks.await
@@ -26,12 +27,7 @@ interface SaiRepository {
 }
 
 class LocalSaiRepository : SaiRepository {
-    override fun getServices(): List<ServiceCategory> = listOf(
-        ServiceCategory("gates", "Designer Gates", "Main gates, sliding gates, compound entries", "Custom fabricated gates with powder coating, laser-cut accents, and site-fit installation.", "From Rs 28,000", "gate"),
-        ServiceCategory("railings", "Railings & Stairs", "Balcony, staircase, terrace safety solutions", "Modern MS, SS, and hybrid railing systems with polished finishing and strong joinery.", "From Rs 12,000", "stairs"),
-        ServiceCategory("bedroom", "Bedroom Furniture", "Beds, wardrobes, side tables, dressing units", "Storage-focused bedroom sets designed around room size, materials, and usage.", "From Rs 18,000", "bed"),
-        ServiceCategory("office", "Office & Commercial", "Counters, cabins, seating, storage", "Durable furniture and fabrication work for shops, clinics, and offices.", "From Rs 22,000", "office")
-    )
+    override fun getServices(): List<ServiceCategory> = emptyList()
 
     override fun getGallery(): List<GalleryItem> = emptyList()
 
@@ -52,7 +48,8 @@ data class DashboardBundle(
     val gallery: List<GalleryItem>,
     val inquiries: List<Inquiry>,
     val billing: List<BillingRecord>,
-    val metrics: List<DashboardMetric>
+    val metrics: List<DashboardMetric>,
+    val ownerPhone: String
 )
 
 data class FirebaseInquiry(
@@ -87,6 +84,20 @@ data class FirebaseBillingRecord(
     val dueAmount: String = "",
     val dueDate: String = "",
     val paymentStatus: String = ""
+)
+
+data class FirebaseServiceItem(
+    val id: String = "",
+    val title: String = "",
+    val subtitle: String = "",
+    val description: String = "",
+    val startingPrice: String = "",
+    val icon: String = "office",
+    val imageUrl: String = ""
+)
+
+data class FirebaseBusinessSettings(
+    val ownerPhone: String = "9913310429"
 )
 
 class FirebaseSaiRepository : SaiRepository {
@@ -209,6 +220,49 @@ class FirebaseSaiRepository : SaiRepository {
         db.collection("billings").document(id).delete().await()
     }
 
+    suspend fun addService(draft: ServiceDraft) {
+        val db = firestore ?: return
+        val document = if (draft.title.isBlank()) return else db.collection("services").document()
+        val payload = FirebaseServiceItem(
+            id = document.id,
+            title = draft.title,
+            subtitle = draft.subtitle,
+            description = draft.description,
+            startingPrice = draft.startingPrice,
+            icon = draft.icon,
+            imageUrl = draft.imageUrl
+        )
+        document.set(payload).await()
+    }
+
+    suspend fun updateService(draft: ServiceDraft) {
+        val db = firestore ?: return
+        if (draft.id.isBlank() || draft.title.isBlank()) return
+        val payload = FirebaseServiceItem(
+            id = draft.id,
+            title = draft.title,
+            subtitle = draft.subtitle,
+            description = draft.description,
+            startingPrice = draft.startingPrice,
+            icon = draft.icon,
+            imageUrl = draft.imageUrl
+        )
+        db.collection("services").document(draft.id).set(payload).await()
+    }
+
+    suspend fun deleteService(id: String) {
+        val db = firestore ?: return
+        if (id.isBlank()) return
+        db.collection("services").document(id).delete().await()
+    }
+
+    suspend fun saveOwnerPhone(number: String) {
+        val db = firestore ?: return
+        db.collection("settings").document("business_contact")
+            .set(FirebaseBusinessSettings(ownerPhone = number))
+            .await()
+    }
+
     suspend fun uploadGalleryImage(uri: Uri): String {
         val firebaseStorage = storage ?: return ""
         val imageRef = firebaseStorage.reference
@@ -225,8 +279,20 @@ class FirebaseSaiRepository : SaiRepository {
             gallery = fallback.getGallery(),
             inquiries = fallback.getInquiries(),
             billing = fallback.getBillingRecords(),
-            metrics = fallback.getDashboardMetrics()
+            metrics = fallback.getDashboardMetrics(),
+            ownerPhone = "9913310429"
         )
+
+        val services = db.collection("services")
+            .orderBy("title", Query.Direction.ASCENDING)
+            .get()
+            .await()
+            .documents
+            .mapNotNull { snapshot ->
+                snapshot.toObject<FirebaseServiceItem>()?.let {
+                    ServiceCategory(it.id, it.title, it.subtitle, it.description, it.startingPrice, it.icon, it.imageUrl)
+                }
+            }
 
         val gallery = db.collection("gallery_items")
             .orderBy("title", Query.Direction.ASCENDING)
@@ -264,8 +330,17 @@ class FirebaseSaiRepository : SaiRepository {
             }
             .ifEmpty { fallback.getBillingRecords() }
 
+        val ownerPhone = db.collection("settings")
+            .document("business_contact")
+            .get()
+            .await()
+            .toObject<FirebaseBusinessSettings>()
+            ?.ownerPhone
+            ?.ifBlank { "9913310429" }
+            ?: "9913310429"
+
         return DashboardBundle(
-            services = fallback.getServices(),
+            services = services,
             gallery = gallery,
             inquiries = inquiries,
             billing = billing,
@@ -274,7 +349,8 @@ class FirebaseSaiRepository : SaiRepository {
                 DashboardMetric("New Leads", inquiries.count { it.status.equals("New", ignoreCase = true) }.toString(), "Count of open fresh inquiries"),
                 DashboardMetric("Pending Amount", billing.firstOrNull()?.dueAmount ?: "Rs 0", "Use Firestore billing entries for real totals"),
                 DashboardMetric("Client Rating", "4.9", "Replace with your own feedback collection later")
-            )
+            ),
+            ownerPhone = ownerPhone
         )
     }
 }

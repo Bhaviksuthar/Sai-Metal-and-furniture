@@ -6,7 +6,8 @@ data class ServiceCategory(
     val subtitle: String,
     val description: String,
     val startingPrice: String,
-    val icon: String
+    val icon: String,
+    val imageUrl: String = ""
 )
 
 data class GalleryItem(
@@ -48,10 +49,20 @@ data class BillingDraft(
     val clientName: String = "",
     val projectTitle: String = "",
     val totalAmount: String = "",
-    val advancePaid: String = "",
+    val advancePaid: String = "Not Paid",
     val dueAmount: String = "",
     val dueDate: String = "",
-    val paymentStatus: String = ""
+    val paymentStatus: String = "Unpaid"
+)
+
+data class ServiceDraft(
+    val id: String = "",
+    val title: String = "",
+    val subtitle: String = "",
+    val description: String = "",
+    val startingPrice: String = "",
+    val icon: String = "office",
+    val imageUrl: String = ""
 )
 
 data class DashboardMetric(

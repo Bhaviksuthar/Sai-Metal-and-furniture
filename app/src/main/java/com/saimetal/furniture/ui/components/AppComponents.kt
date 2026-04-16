@@ -72,6 +72,17 @@ fun ServiceCard(service: ServiceCategory, modifier: Modifier = Modifier) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
+            if (service.imageUrl.isNotBlank()) {
+                AsyncImage(
+                    model = service.imageUrl,
+                    contentDescription = service.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f), RoundedCornerShape(18.dp))
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier

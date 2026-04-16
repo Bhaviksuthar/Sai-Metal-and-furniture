@@ -12,6 +12,7 @@ import com.saimetal.furniture.data.model.BillingDraft
 import com.saimetal.furniture.data.model.GalleryItem
 import com.saimetal.furniture.data.model.Inquiry
 import com.saimetal.furniture.data.model.QuoteDraft
+import com.saimetal.furniture.data.model.ServiceDraft
 import com.saimetal.furniture.data.model.WorkDraft
 import com.saimetal.furniture.data.repository.FirebaseSaiRepository
 import com.saimetal.furniture.data.repository.LocalSaiRepository
@@ -38,6 +39,9 @@ class SaiMetalViewModel(
     var billingDraft by mutableStateOf(BillingDraft())
         private set
 
+    var serviceDraft by mutableStateOf(ServiceDraft())
+        private set
+
     var adminLoggedIn by mutableStateOf(firebaseRepository?.isAdminSignedIn() == true)
         private set
 
@@ -53,12 +57,18 @@ class SaiMetalViewModel(
     var adminBillingMessage by mutableStateOf("Manage billing records from here.")
         private set
 
+    var adminServiceMessage by mutableStateOf("Manage services from here.")
+        private set
+
     var imageUploadInProgress by mutableStateOf(false)
         private set
 
     var firebaseStatus by mutableStateOf(
         if (firebaseRepository?.isFirebaseConfigured() == true) "Firebase ready" else "Demo data mode"
     )
+        private set
+
+    var ownerPhone by mutableStateOf("9913310429")
         private set
 
     init {
@@ -170,7 +180,8 @@ class SaiMetalViewModel(
     }
 
     fun logoutAdmin() {
-        firebaseRepository?.signOutAdmin()
+        if (firebaseRepository == null) return
+        firebaseRepository.signOutAdmin()
         adminLoggedIn = false
         adminLoginMessage = "Signed out successfully."
     }
@@ -207,6 +218,10 @@ class SaiMetalViewModel(
 
     fun updateBillingDraft(transform: BillingDraft.() -> BillingDraft) {
         billingDraft = billingDraft.transform()
+    }
+
+    fun updateServiceDraft(transform: ServiceDraft.() -> ServiceDraft) {
+        serviceDraft = serviceDraft.transform()
     }
 
     fun saveBillingRecord() {
@@ -283,6 +298,88 @@ class SaiMetalViewModel(
         adminBillingMessage = "Ready to add a new billing record."
     }
 
+    fun saveService() {
+        if (serviceDraft.title.isBlank()) return
+        val currentDraft = serviceDraft
+        if (currentDraft.id.isBlank()) {
+            services.add(
+                0,
+                com.saimetal.furniture.data.model.ServiceCategory(
+                    id = "S-${services.size + 1}",
+                    title = currentDraft.title,
+                    subtitle = currentDraft.subtitle,
+                    description = currentDraft.description,
+                    startingPrice = currentDraft.startingPrice,
+                    icon = currentDraft.icon,
+                    imageUrl = currentDraft.imageUrl
+                )
+            )
+            adminServiceMessage = "Service added successfully."
+        } else {
+            val index = services.indexOfFirst { it.id == currentDraft.id }
+            if (index >= 0) {
+                services[index] = com.saimetal.furniture.data.model.ServiceCategory(
+                    id = currentDraft.id,
+                    title = currentDraft.title,
+                    subtitle = currentDraft.subtitle,
+                    description = currentDraft.description,
+                    startingPrice = currentDraft.startingPrice,
+                    icon = currentDraft.icon,
+                    imageUrl = currentDraft.imageUrl
+                )
+            }
+            adminServiceMessage = "Service updated successfully."
+        }
+        serviceDraft = ServiceDraft()
+        viewModelScope.launch {
+            runCatching {
+                if (currentDraft.id.isBlank()) firebaseRepository?.addService(currentDraft)
+                else firebaseRepository?.updateService(currentDraft)
+            }
+        }
+    }
+
+    fun editService(service: com.saimetal.furniture.data.model.ServiceCategory) {
+        serviceDraft = ServiceDraft(
+            id = service.id,
+            title = service.title,
+            subtitle = service.subtitle,
+            description = service.description,
+            startingPrice = service.startingPrice,
+            icon = service.icon,
+            imageUrl = service.imageUrl
+        )
+        adminServiceMessage = "Editing ${service.title}."
+    }
+
+    fun deleteService(id: String) {
+        services.removeAll { it.id == id }
+        if (serviceDraft.id == id) serviceDraft = ServiceDraft()
+        adminServiceMessage = "Service deleted."
+        viewModelScope.launch {
+            runCatching { firebaseRepository?.deleteService(id) }
+        }
+    }
+
+    fun clearServiceDraft() {
+        serviceDraft = ServiceDraft()
+        adminServiceMessage = "Ready to add a new service."
+    }
+
+    fun updateOwnerPhone(number: String) {
+        ownerPhone = number
+    }
+
+    fun saveOwnerPhone() {
+        val currentNumber = ownerPhone
+        firebaseStatus = "Saving owner contact..."
+        viewModelScope.launch {
+            runCatching { firebaseRepository?.saveOwnerPhone(currentNumber) }
+                .onSuccess { firebaseStatus = "Owner contact updated" }
+                .onFailure { firebaseStatus = "Failed to save owner contact" }
+        }
+    }
+
     fun uploadWorkImage(uri: Uri) {
         if (firebaseRepository == null) {
             adminWorkMessage = "Firebase Storage is not enabled for image upload."
@@ -307,6 +404,30 @@ class SaiMetalViewModel(
         }
     }
 
+    fun uploadServiceImage(uri: Uri) {
+        if (firebaseRepository == null) {
+            adminServiceMessage = "Firebase Storage is not enabled for image upload."
+            return
+        }
+        viewModelScope.launch {
+            imageUploadInProgress = true
+            adminServiceMessage = "Uploading service image..."
+            runCatching { firebaseRepository.uploadGalleryImage(uri) }
+                .onSuccess { imageUrl ->
+                    if (imageUrl.isNotBlank()) {
+                        serviceDraft = serviceDraft.copy(imageUrl = imageUrl)
+                        adminServiceMessage = "Service image uploaded successfully."
+                    } else {
+                        adminServiceMessage = "Service image upload failed. Please try again."
+                    }
+                }
+                .onFailure {
+                    adminServiceMessage = "Service image upload failed. Please check Firebase Storage setup."
+                }
+            imageUploadInProgress = false
+        }
+    }
+
     private fun refreshFromFirebase() {
         if (firebaseRepository == null) return
         viewModelScope.launch {
@@ -322,6 +443,7 @@ class SaiMetalViewModel(
                     inquiries.addAll(bundle.inquiries)
                     billing.clear()
                     billing.addAll(bundle.billing)
+                    ownerPhone = bundle.ownerPhone
                     firebaseStatus = "Loaded live Firestore data"
                 }
                 .onFailure {

@@ -1,5 +1,6 @@
 package com.saimetal.furniture.ui.screens
 
+import android.app.DatePickerDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Logout
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -52,9 +55,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import java.util.Calendar
 import com.saimetal.furniture.ui.SaiMetalViewModel
 import com.saimetal.furniture.ui.components.BillingCard
 import com.saimetal.furniture.ui.components.GalleryCard
@@ -104,7 +109,7 @@ fun HomeScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
                             FilledTonalButton(onClick = {}) {
                                 Icon(Icons.Rounded.Call, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Call Owner")
+                                Text(viewModel.ownerPhone)
                             }
                             FilledTonalButton(onClick = {}) {
                                 Icon(Icons.Rounded.Message, contentDescription = null)
@@ -168,6 +173,11 @@ fun ServicesScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) 
                 title = "Services",
                 subtitle = "Designed to showcase the business clearly to customers and builders."
             )
+        }
+        if (viewModel.services.isEmpty()) {
+            item {
+                Text("No services added yet.", style = MaterialTheme.typography.bodyMedium)
+            }
         }
         items(viewModel.services) { service ->
             ServiceCard(service = service)
@@ -239,7 +249,7 @@ fun QuoteScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Call, contentDescription = null)
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text("+91 98765 43210")
+                    Text(viewModel.ownerPhone)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.LocationOn, contentDescription = null)
@@ -350,6 +360,142 @@ private fun AdminOverviewScreen(viewModel: SaiMetalViewModel, modifier: Modifier
                 }
             }
         }
+        HorizontalDivider()
+        Text("Owner Contact Control", style = MaterialTheme.typography.titleLarge)
+        OutlinedTextField(
+            value = viewModel.ownerPhone,
+            onValueChange = { viewModel.updateOwnerPhone(it) },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Owner phone / WhatsApp number") }
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = { viewModel.saveOwnerPhone() }, modifier = Modifier.weight(1f)) {
+                Text("Save number")
+            }
+            OutlinedButton(onClick = { viewModel.logoutAdmin() }, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Rounded.Logout, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Sign out")
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminServicesScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
+    if (!viewModel.adminLoggedIn) {
+        AdminLoginScreen(viewModel = viewModel, modifier = modifier)
+        return
+    }
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.uploadServiceImage(uri)
+        }
+    }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        SectionTitle(
+            title = "Services Management",
+            subtitle = "Add, update, delete, and review customer-facing services."
+        )
+        OutlinedTextField(
+            value = viewModel.serviceDraft.title,
+            onValueChange = { viewModel.updateServiceDraft { copy(title = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Service title") }
+        )
+        OutlinedTextField(
+            value = viewModel.serviceDraft.subtitle,
+            onValueChange = { viewModel.updateServiceDraft { copy(subtitle = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Service subtitle") }
+        )
+        OutlinedTextField(
+            value = viewModel.serviceDraft.description,
+            onValueChange = { viewModel.updateServiceDraft { copy(description = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            label = { Text("Description") }
+        )
+        OutlinedTextField(
+            value = viewModel.serviceDraft.startingPrice,
+            onValueChange = { viewModel.updateServiceDraft { copy(startingPrice = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Starting price") }
+        )
+        Text("Service type", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf("gate" to "Metal Works", "bed" to "Furniture").forEach { (value, label) ->
+                OutlinedButton(
+                    onClick = { viewModel.updateServiceDraft { copy(icon = value) } },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(label)
+                }
+            }
+        }
+        OutlinedTextField(
+            value = viewModel.serviceDraft.imageUrl,
+            onValueChange = { viewModel.updateServiceDraft { copy(imageUrl = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Service image URL") }
+        )
+        if (viewModel.imageUploadInProgress) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = { imagePickerLauncher.launch("image/*") }, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Rounded.Image, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Pick image")
+            }
+            OutlinedButton(
+                onClick = { viewModel.updateServiceDraft { copy(imageUrl = "") } },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Clear image")
+            }
+        }
+        Text(viewModel.adminServiceMessage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = { viewModel.saveService() }, modifier = Modifier.weight(1f)) {
+                Text(if (viewModel.serviceDraft.id.isBlank()) "Save service" else "Update service")
+            }
+            OutlinedButton(onClick = { viewModel.clearServiceDraft() }, modifier = Modifier.weight(1f)) {
+                Text("Clear form")
+            }
+        }
+        HorizontalDivider()
+        if (viewModel.services.isEmpty()) {
+            Text("No services added yet.", style = MaterialTheme.typography.bodyMedium)
+        }
+        viewModel.services.forEach { service ->
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(service.title, style = MaterialTheme.typography.titleMedium)
+                    Text(service.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(onClick = { viewModel.editService(service) }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Rounded.Edit, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Edit")
+                        }
+                        OutlinedButton(onClick = { viewModel.deleteService(service.id) }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Rounded.Delete, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Delete")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -391,6 +537,16 @@ fun AdminWorksScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Category") }
         )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf("Furniture", "Metal Works").forEach { category ->
+                OutlinedButton(
+                    onClick = { viewModel.updateWorkDraft { copy(category = category) } },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(category)
+                }
+            }
+        }
         OutlinedTextField(
             value = viewModel.workDraft.location,
             onValueChange = { viewModel.updateWorkDraft { copy(location = it) } },
@@ -499,6 +655,19 @@ fun AdminBillingScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifi
         AdminLoginScreen(viewModel = viewModel, modifier = modifier)
         return
     }
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            viewModel.updateBillingDraft {
+                copy(dueDate = "${dayOfMonth.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year")
+            }
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -534,6 +703,16 @@ fun AdminBillingScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifi
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Advance paid") }
         )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf("Paid", "Not Paid").forEach { option ->
+                OutlinedButton(
+                    onClick = { viewModel.updateBillingDraft { copy(advancePaid = option) } },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(option)
+                }
+            }
+        )
         OutlinedTextField(
             value = viewModel.billingDraft.dueAmount,
             onValueChange = { viewModel.updateBillingDraft { copy(dueAmount = it) } },
@@ -544,14 +723,28 @@ fun AdminBillingScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifi
             value = viewModel.billingDraft.dueDate,
             onValueChange = { viewModel.updateBillingDraft { copy(dueDate = it) } },
             modifier = Modifier.fillMaxWidth(),
+            readOnly = true,
             label = { Text("Due date") }
         )
+        OutlinedButton(onClick = { datePickerDialog.show() }, modifier = Modifier.fillMaxWidth()) {
+            Text("Choose due date")
+        }
         OutlinedTextField(
             value = viewModel.billingDraft.paymentStatus,
             onValueChange = { viewModel.updateBillingDraft { copy(paymentStatus = it) } },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Payment status") }
         )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf("Paid", "Unpaid").forEach { option ->
+                OutlinedButton(
+                    onClick = { viewModel.updateBillingDraft { copy(paymentStatus = option) } },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(option)
+                }
+            }
+        }
         Text(
             text = viewModel.adminBillingMessage,
             style = MaterialTheme.typography.bodyMedium,

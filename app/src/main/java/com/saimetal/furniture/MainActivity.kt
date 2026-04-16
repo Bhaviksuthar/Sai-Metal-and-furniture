@@ -29,6 +29,7 @@ import com.saimetal.furniture.ui.navigation.AppDestination
 import com.saimetal.furniture.ui.screens.AboutScreen
 import com.saimetal.furniture.ui.screens.AdminBillingScreen
 import com.saimetal.furniture.ui.screens.AdminHomeScreen
+import com.saimetal.furniture.ui.screens.AdminServicesScreen
 import com.saimetal.furniture.ui.screens.AdminWorksScreen
 import com.saimetal.furniture.ui.screens.FavoritesScreen
 import com.saimetal.furniture.ui.screens.GalleryScreen
@@ -66,13 +67,7 @@ fun SaiMetalApp(viewModel: SaiMetalViewModel = viewModel()) {
             onAdminSelected = { appMode = AppMode.ADMIN }
         )
         AppMode.CUSTOMER -> CustomerShell(viewModel = viewModel, onSwitchRole = { appMode = AppMode.ROLE_PICK })
-        AppMode.ADMIN -> AdminShell(
-            viewModel = viewModel,
-            onSwitchRole = {
-                viewModel.logoutAdmin()
-                appMode = AppMode.ROLE_PICK
-            }
-        )
+        AppMode.ADMIN -> AdminShell(viewModel = viewModel, onSwitchRole = { appMode = AppMode.ROLE_PICK })
     }
 }
 
@@ -137,6 +132,7 @@ private fun CustomerShell(viewModel: SaiMetalViewModel, onSwitchRole: () -> Unit
 private fun AdminShell(viewModel: SaiMetalViewModel, onSwitchRole: () -> Unit) {
     val items = listOf(
         AppDestination.AdminHome,
+        AppDestination.AdminServices,
         AppDestination.AdminWorks,
         AppDestination.AdminBilling
     )
@@ -145,6 +141,7 @@ private fun AdminShell(viewModel: SaiMetalViewModel, onSwitchRole: () -> Unit) {
     BaseShell(items, currentRoute, { currentRoute = it }, onSwitchRole) {
         when (currentRoute) {
             AppDestination.AdminHome.route -> AdminHomeScreen(viewModel = viewModel)
+            AppDestination.AdminServices.route -> AdminServicesScreen(viewModel = viewModel)
             AppDestination.AdminWorks.route -> AdminWorksScreen(viewModel = viewModel)
             AppDestination.AdminBilling.route -> AdminBillingScreen(viewModel = viewModel)
         }
