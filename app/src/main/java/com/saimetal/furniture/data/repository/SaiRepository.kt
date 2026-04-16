@@ -8,6 +8,7 @@ import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.storage.FirebaseStorage
 import com.saimetal.furniture.BuildConfig
 import com.saimetal.furniture.data.model.BillingRecord
+import com.saimetal.furniture.data.model.BillingDraft
 import com.saimetal.furniture.data.model.DashboardMetric
 import com.saimetal.furniture.data.model.GalleryItem
 import com.saimetal.furniture.data.model.Inquiry
@@ -39,22 +40,14 @@ class LocalSaiRepository : SaiRepository {
         GalleryItem("4", "Showroom Display Counter", "Commercial", "Vapi", "Fabricated counter and wall display furniture with integrated storage.", "Rs 60,000 - Rs 85,000", "10-14 days", listOf("Retail", "Storage", "Custom size"), 0xFF735A2F, "")
     )
 
-    override fun getInquiries(): List<Inquiry> = listOf(
-        Inquiry("I-102", "Rakesh Patel", "+91 98765 11223", "Sliding gate", "Need a modern gate for bungalow entrance.", "New", "Rs 70,000"),
-        Inquiry("I-103", "Krupa Shah", "+91 93280 44211", "Wardrobe", "Three-door wardrobe with loft and mirror panel.", "Quoted", "Rs 45,000"),
-        Inquiry("I-104", "Jignesh Solanki", "+91 99988 22110", "Office counter", "Reception desk and two storage units for clinic.", "Site visit", "Rs 65,000")
-    )
+    override fun getInquiries(): List<Inquiry> = emptyList()
 
-    override fun getBillingRecords(): List<BillingRecord> = listOf(
-        BillingRecord("B-201", "Rakesh Patel", "Laser Cut Main Gate", "Rs 68,000", "Rs 25,000", "Rs 43,000", "18 Apr 2026", "Pending"),
-        BillingRecord("B-202", "Krupa Shah", "Bedroom Wardrobe", "Rs 47,500", "Rs 30,000", "Rs 17,500", "12 Apr 2026", "Partially Paid"),
-        BillingRecord("B-203", "Yash Interiors", "Display Counter Unit", "Rs 84,000", "Rs 84,000", "Rs 0", "Paid", "Paid")
-    )
+    override fun getBillingRecords(): List<BillingRecord> = emptyList()
 
     override fun getDashboardMetrics(): List<DashboardMetric> = listOf(
         DashboardMetric("Active Works", "12", "4 deliveries due this week"),
-        DashboardMetric("New Leads", "18", "6 leads from gallery inquiries"),
-        DashboardMetric("Pending Amount", "Rs 1.28L", "Follow-up needed on 3 bills"),
+        DashboardMetric("New Leads", "0", "Customer inquiries will appear here"),
+        DashboardMetric("Pending Amount", "Rs 0", "Billing entries will update this total"),
         DashboardMetric("Client Rating", "4.9", "Based on recent project feedback")
     )
 }
@@ -114,6 +107,12 @@ class FirebaseSaiRepository : SaiRepository {
     override fun getDashboardMetrics(): List<DashboardMetric> = fallback.getDashboardMetrics()
 
     fun isFirebaseConfigured(): Boolean = firestore != null && auth != null && storage != null
+
+    fun isAdminSignedIn(): Boolean = auth?.currentUser != null
+
+    fun signOutAdmin() {
+        auth?.signOut()
+    }
 
     suspend fun signInAdmin(email: String, password: String): Boolean {
         val firebaseAuth = auth ?: return false
@@ -175,6 +174,44 @@ class FirebaseSaiRepository : SaiRepository {
         val db = firestore ?: return
         if (id.isBlank()) return
         db.collection("gallery_items").document(id).delete().await()
+    }
+
+    suspend fun addBillingRecord(draft: BillingDraft) {
+        val db = firestore ?: return
+        val document = if (draft.clientName.isBlank()) return else db.collection("billings").document()
+        val payload = FirebaseBillingRecord(
+            id = document.id,
+            clientName = draft.clientName,
+            projectTitle = draft.projectTitle,
+            totalAmount = draft.totalAmount,
+            advancePaid = draft.advancePaid,
+            dueAmount = draft.dueAmount,
+            dueDate = draft.dueDate,
+            paymentStatus = draft.paymentStatus.ifBlank { "Pending" }
+        )
+        document.set(payload).await()
+    }
+
+    suspend fun updateBillingRecord(draft: BillingDraft) {
+        val db = firestore ?: return
+        if (draft.id.isBlank() || draft.clientName.isBlank()) return
+        val payload = FirebaseBillingRecord(
+            id = draft.id,
+            clientName = draft.clientName,
+            projectTitle = draft.projectTitle,
+            totalAmount = draft.totalAmount,
+            advancePaid = draft.advancePaid,
+            dueAmount = draft.dueAmount,
+            dueDate = draft.dueDate,
+            paymentStatus = draft.paymentStatus.ifBlank { "Pending" }
+        )
+        db.collection("billings").document(draft.id).set(payload).await()
+    }
+
+    suspend fun deleteBillingRecord(id: String) {
+        val db = firestore ?: return
+        if (id.isBlank()) return
+        db.collection("billings").document(id).delete().await()
     }
 
     suspend fun uploadGalleryImage(uri: Uri): String {

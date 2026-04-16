@@ -7,6 +7,7 @@ sealed class AppDestination(val route: String, val label: String) {
     data object Favorites : AppDestination("favorites", "Saved")
     data object Quote : AppDestination("quote", "Quote")
     data object About : AppDestination("about", "About")
-    data object Billing : AppDestination("billing", "Billing")
-    data object Admin : AppDestination("admin", "Admin")
+    data object AdminHome : AppDestination("admin_home", "Overview")
+    data object AdminWorks : AppDestination("admin_works", "Works")
+    data object AdminBilling : AppDestination("admin_billing", "Billing")
 }

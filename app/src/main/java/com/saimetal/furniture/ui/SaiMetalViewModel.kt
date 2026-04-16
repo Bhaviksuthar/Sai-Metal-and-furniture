@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.saimetal.furniture.BuildConfig
+import com.saimetal.furniture.data.model.BillingDraft
 import com.saimetal.furniture.data.model.GalleryItem
 import com.saimetal.furniture.data.model.Inquiry
 import com.saimetal.furniture.data.model.QuoteDraft
@@ -34,7 +35,10 @@ class SaiMetalViewModel(
     var workDraft by mutableStateOf(WorkDraft())
         private set
 
-    var adminLoggedIn by mutableStateOf(false)
+    var billingDraft by mutableStateOf(BillingDraft())
+        private set
+
+    var adminLoggedIn by mutableStateOf(firebaseRepository?.isAdminSignedIn() == true)
         private set
 
     var adminLoginMessage by mutableStateOf("Sign in with your Firebase Authentication admin email and password.")
@@ -44,6 +48,9 @@ class SaiMetalViewModel(
         private set
 
     var adminWorkMessage by mutableStateOf("Manage gallery works from here.")
+        private set
+
+    var adminBillingMessage by mutableStateOf("Manage billing records from here.")
         private set
 
     var imageUploadInProgress by mutableStateOf(false)
@@ -162,6 +169,12 @@ class SaiMetalViewModel(
         }
     }
 
+    fun logoutAdmin() {
+        firebaseRepository?.signOutAdmin()
+        adminLoggedIn = false
+        adminLoginMessage = "Signed out successfully."
+    }
+
     fun editGalleryWork(item: GalleryItem) {
         workDraft = WorkDraft(
             id = item.id,
@@ -190,6 +203,84 @@ class SaiMetalViewModel(
     fun clearWorkDraft() {
         workDraft = WorkDraft()
         adminWorkMessage = "Ready to add a new work item."
+    }
+
+    fun updateBillingDraft(transform: BillingDraft.() -> BillingDraft) {
+        billingDraft = billingDraft.transform()
+    }
+
+    fun saveBillingRecord() {
+        if (billingDraft.clientName.isBlank() || billingDraft.projectTitle.isBlank()) return
+        val currentDraft = billingDraft
+        if (currentDraft.id.isBlank()) {
+            billing.add(
+                0,
+                com.saimetal.furniture.data.model.BillingRecord(
+                    id = "B-${billing.size + 1}",
+                    clientName = currentDraft.clientName,
+                    projectTitle = currentDraft.projectTitle,
+                    totalAmount = currentDraft.totalAmount,
+                    advancePaid = currentDraft.advancePaid,
+                    dueAmount = currentDraft.dueAmount,
+                    dueDate = currentDraft.dueDate,
+                    paymentStatus = currentDraft.paymentStatus.ifBlank { "Pending" }
+                )
+            )
+            adminBillingMessage = "Billing record added successfully."
+        } else {
+            val index = billing.indexOfFirst { it.id == currentDraft.id }
+            if (index >= 0) {
+                billing[index] = com.saimetal.furniture.data.model.BillingRecord(
+                    id = currentDraft.id,
+                    clientName = currentDraft.clientName,
+                    projectTitle = currentDraft.projectTitle,
+                    totalAmount = currentDraft.totalAmount,
+                    advancePaid = currentDraft.advancePaid,
+                    dueAmount = currentDraft.dueAmount,
+                    dueDate = currentDraft.dueDate,
+                    paymentStatus = currentDraft.paymentStatus.ifBlank { "Pending" }
+                )
+            }
+            adminBillingMessage = "Billing record updated successfully."
+        }
+        billingDraft = BillingDraft()
+        viewModelScope.launch {
+            runCatching {
+                if (currentDraft.id.isBlank()) {
+                    firebaseRepository?.addBillingRecord(currentDraft)
+                } else {
+                    firebaseRepository?.updateBillingRecord(currentDraft)
+                }
+            }
+        }
+    }
+
+    fun editBillingRecord(record: com.saimetal.furniture.data.model.BillingRecord) {
+        billingDraft = BillingDraft(
+            id = record.id,
+            clientName = record.clientName,
+            projectTitle = record.projectTitle,
+            totalAmount = record.totalAmount,
+            advancePaid = record.advancePaid,
+            dueAmount = record.dueAmount,
+            dueDate = record.dueDate,
+            paymentStatus = record.paymentStatus
+        )
+        adminBillingMessage = "Editing billing record for ${record.clientName}."
+    }
+
+    fun deleteBillingRecord(id: String) {
+        billing.removeAll { it.id == id }
+        if (billingDraft.id == id) billingDraft = BillingDraft()
+        adminBillingMessage = "Billing record deleted."
+        viewModelScope.launch {
+            runCatching { firebaseRepository?.deleteBillingRecord(id) }
+        }
+    }
+
+    fun clearBillingDraft() {
+        billingDraft = BillingDraft()
+        adminBillingMessage = "Ready to add a new billing record."
     }
 
     fun uploadWorkImage(uri: Uri) {

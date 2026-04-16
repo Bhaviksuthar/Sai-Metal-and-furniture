@@ -43,6 +43,17 @@ data class BillingRecord(
     val paymentStatus: String
 )
 
+data class BillingDraft(
+    val id: String = "",
+    val clientName: String = "",
+    val projectTitle: String = "",
+    val totalAmount: String = "",
+    val advancePaid: String = "",
+    val dueAmount: String = "",
+    val dueDate: String = "",
+    val paymentStatus: String = ""
+)
+
 data class DashboardMetric(
     val title: String,
     val value: String,

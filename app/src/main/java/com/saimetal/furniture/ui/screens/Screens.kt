@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -253,11 +252,11 @@ fun QuoteScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AdminScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
+fun AdminHomeScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
     if (!viewModel.adminLoggedIn) {
         AdminLoginScreen(viewModel = viewModel, modifier = modifier)
     } else {
-        AdminDashboardScreen(viewModel = viewModel, modifier = modifier)
+        AdminOverviewScreen(viewModel = viewModel, modifier = modifier)
     }
 }
 
@@ -314,7 +313,52 @@ private fun AdminLoginScreen(viewModel: SaiMetalViewModel, modifier: Modifier = 
 }
 
 @Composable
-private fun AdminDashboardScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
+private fun AdminOverviewScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        SectionTitle(
+            title = "Admin Overview",
+            subtitle = "A quick summary for owners before moving into works and billing management."
+        )
+        viewModel.metrics.forEach { metric ->
+            MetricCard(metric = metric)
+        }
+        HorizontalDivider()
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.WorkspacePremium, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Recent Inquiries", style = MaterialTheme.typography.titleLarge)
+        }
+        if (viewModel.inquiries.isEmpty()) {
+            Text("No inquiries yet.", style = MaterialTheme.typography.bodyMedium)
+        }
+        viewModel.inquiries.forEach { inquiry ->
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${inquiry.customerName} - ${inquiry.workType}", style = MaterialTheme.typography.titleMedium)
+                    Text(inquiry.message, style = MaterialTheme.typography.bodyMedium)
+                    Text("${inquiry.phone} - ${inquiry.budget}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    AssistChip(onClick = {}, label = { Text(inquiry.status) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminWorksScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
+    if (!viewModel.adminLoggedIn) {
+        AdminLoginScreen(viewModel = viewModel, modifier = modifier)
+        return
+    }
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -331,14 +375,10 @@ private fun AdminDashboardScreen(viewModel: SaiMetalViewModel, modifier: Modifie
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         SectionTitle(
-            title = "Admin Dashboard",
-            subtitle = "Owners can manage works, check added items, update details, delete entries, and track billing from one place."
+            title = "Works Management",
+            subtitle = "Add, edit, delete, and review the works shown to customers."
         )
-        viewModel.metrics.forEach { metric ->
-            MetricCard(metric = metric)
-        }
-        HorizontalDivider()
-        Text("Add New Gallery Work", style = MaterialTheme.typography.titleLarge)
+        Text("Add Or Update Work", style = MaterialTheme.typography.titleLarge)
         OutlinedTextField(
             value = viewModel.workDraft.title,
             onValueChange = { viewModel.updateWorkDraft { copy(title = it) } },
@@ -420,6 +460,9 @@ private fun AdminDashboardScreen(viewModel: SaiMetalViewModel, modifier: Modifie
             Spacer(modifier = Modifier.width(8.dp))
             Text("Manage Added Works", style = MaterialTheme.typography.titleLarge)
         }
+        if (viewModel.gallery.isEmpty()) {
+            Text("No works added yet.", style = MaterialTheme.typography.bodyMedium)
+        }
         viewModel.gallery.forEach { item ->
             Card(
                 shape = RoundedCornerShape(20.dp),
@@ -447,33 +490,106 @@ private fun AdminDashboardScreen(viewModel: SaiMetalViewModel, modifier: Modifie
                 }
             }
         }
-        HorizontalDivider()
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.WorkspacePremium, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Recent Inquiries", style = MaterialTheme.typography.titleLarge)
+    }
+}
+
+@Composable
+fun AdminBillingScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
+    if (!viewModel.adminLoggedIn) {
+        AdminLoginScreen(viewModel = viewModel, modifier = modifier)
+        return
+    }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        SectionTitle(
+            title = "Billing Management",
+            subtitle = "Create, update, and delete client billing records."
+        )
+        OutlinedTextField(
+            value = viewModel.billingDraft.clientName,
+            onValueChange = { viewModel.updateBillingDraft { copy(clientName = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Client name") }
+        )
+        OutlinedTextField(
+            value = viewModel.billingDraft.projectTitle,
+            onValueChange = { viewModel.updateBillingDraft { copy(projectTitle = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Project title") }
+        )
+        OutlinedTextField(
+            value = viewModel.billingDraft.totalAmount,
+            onValueChange = { viewModel.updateBillingDraft { copy(totalAmount = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Total amount") }
+        )
+        OutlinedTextField(
+            value = viewModel.billingDraft.advancePaid,
+            onValueChange = { viewModel.updateBillingDraft { copy(advancePaid = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Advance paid") }
+        )
+        OutlinedTextField(
+            value = viewModel.billingDraft.dueAmount,
+            onValueChange = { viewModel.updateBillingDraft { copy(dueAmount = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Due amount") }
+        )
+        OutlinedTextField(
+            value = viewModel.billingDraft.dueDate,
+            onValueChange = { viewModel.updateBillingDraft { copy(dueDate = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Due date") }
+        )
+        OutlinedTextField(
+            value = viewModel.billingDraft.paymentStatus,
+            onValueChange = { viewModel.updateBillingDraft { copy(paymentStatus = it) } },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Payment status") }
+        )
+        Text(
+            text = viewModel.adminBillingMessage,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = { viewModel.saveBillingRecord() }, modifier = Modifier.weight(1f)) {
+                Text(if (viewModel.billingDraft.id.isBlank()) "Save billing" else "Update billing")
+            }
+            OutlinedButton(onClick = { viewModel.clearBillingDraft() }, modifier = Modifier.weight(1f)) {
+                Text("Clear form")
+            }
         }
-        viewModel.inquiries.forEach { inquiry ->
+        HorizontalDivider()
+        if (viewModel.billing.isEmpty()) {
+            Text("No billing records added yet.", style = MaterialTheme.typography.bodyMedium)
+        }
+        viewModel.billing.forEach { record ->
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${inquiry.customerName} - ${inquiry.workType}", style = MaterialTheme.typography.titleMedium)
-                    Text(inquiry.message, style = MaterialTheme.typography.bodyMedium)
-                    Text("${inquiry.phone} - ${inquiry.budget}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    AssistChip(onClick = {}, label = { Text(inquiry.status) })
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    BillingCard(record = record)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(onClick = { viewModel.editBillingRecord(record) }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Rounded.Edit, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Edit")
+                        }
+                        OutlinedButton(onClick = { viewModel.deleteBillingRecord(record.id) }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Rounded.Delete, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Delete")
+                        }
+                    }
                 }
             }
-        }
-        HorizontalDivider()
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Payments, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Billing Management", style = MaterialTheme.typography.titleLarge)
-        }
-        viewModel.billing.forEach { record ->
-            BillingCard(record = record)
         }
     }
 }
