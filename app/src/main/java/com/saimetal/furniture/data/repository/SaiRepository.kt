@@ -1,9 +1,11 @@
 package com.saimetal.furniture.data.repository
 
+import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.toObject
+import com.google.firebase.storage.FirebaseStorage
 import com.saimetal.furniture.BuildConfig
 import com.saimetal.furniture.data.model.BillingRecord
 import com.saimetal.furniture.data.model.DashboardMetric
@@ -102,6 +104,7 @@ data class FirebaseBillingRecord(
 class FirebaseSaiRepository : SaiRepository {
     private val firestore: FirebaseFirestore? = if (BuildConfig.FIREBASE_ENABLED) FirebaseFirestore.getInstance() else null
     private val auth: FirebaseAuth? = if (BuildConfig.FIREBASE_ENABLED) FirebaseAuth.getInstance() else null
+    private val storage: FirebaseStorage? = if (BuildConfig.FIREBASE_ENABLED) FirebaseStorage.getInstance() else null
     private val fallback = LocalSaiRepository()
 
     override fun getServices(): List<ServiceCategory> = fallback.getServices()
@@ -110,7 +113,7 @@ class FirebaseSaiRepository : SaiRepository {
     override fun getBillingRecords(): List<BillingRecord> = fallback.getBillingRecords()
     override fun getDashboardMetrics(): List<DashboardMetric> = fallback.getDashboardMetrics()
 
-    fun isFirebaseConfigured(): Boolean = firestore != null && auth != null
+    fun isFirebaseConfigured(): Boolean = firestore != null && auth != null && storage != null
 
     suspend fun signInAdmin(email: String, password: String): Boolean {
         val firebaseAuth = auth ?: return false
@@ -172,6 +175,16 @@ class FirebaseSaiRepository : SaiRepository {
         val db = firestore ?: return
         if (id.isBlank()) return
         db.collection("gallery_items").document(id).delete().await()
+    }
+
+    suspend fun uploadGalleryImage(uri: Uri): String {
+        val firebaseStorage = storage ?: return ""
+        val imageRef = firebaseStorage.reference
+            .child("gallery")
+            .child("${System.currentTimeMillis()}-${uri.lastPathSegment ?: "work-image"}")
+
+        imageRef.putFile(uri).await()
+        return imageRef.downloadUrl.await().toString()
     }
 
     suspend fun loadDashboardBundle(): DashboardBundle {

@@ -1,5 +1,6 @@
 package com.saimetal.furniture.ui
 
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,9 @@ class SaiMetalViewModel(
         private set
 
     var adminWorkMessage by mutableStateOf("Manage gallery works from here.")
+        private set
+
+    var imageUploadInProgress by mutableStateOf(false)
         private set
 
     var firebaseStatus by mutableStateOf(
@@ -186,6 +190,30 @@ class SaiMetalViewModel(
     fun clearWorkDraft() {
         workDraft = WorkDraft()
         adminWorkMessage = "Ready to add a new work item."
+    }
+
+    fun uploadWorkImage(uri: Uri) {
+        if (firebaseRepository == null) {
+            adminWorkMessage = "Firebase Storage is not enabled for image upload."
+            return
+        }
+        viewModelScope.launch {
+            imageUploadInProgress = true
+            adminWorkMessage = "Uploading image..."
+            runCatching { firebaseRepository.uploadGalleryImage(uri) }
+                .onSuccess { imageUrl ->
+                    if (imageUrl.isNotBlank()) {
+                        workDraft = workDraft.copy(imageUrl = imageUrl)
+                        adminWorkMessage = "Image uploaded successfully."
+                    } else {
+                        adminWorkMessage = "Image upload failed. Please try again."
+                    }
+                }
+                .onFailure {
+                    adminWorkMessage = "Image upload failed. Please check Firebase Storage setup."
+                }
+            imageUploadInProgress = false
+        }
     }
 
     private fun refreshFromFirebase() {

@@ -1,5 +1,7 @@
 package com.saimetal.furniture.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -313,6 +315,14 @@ private fun AdminLoginScreen(viewModel: SaiMetalViewModel, modifier: Modifier = 
 
 @Composable
 private fun AdminDashboardScreen(viewModel: SaiMetalViewModel, modifier: Modifier = Modifier) {
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.uploadWorkImage(uri)
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -372,6 +382,25 @@ private fun AdminDashboardScreen(viewModel: SaiMetalViewModel, modifier: Modifie
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Work image URL") }
         )
+        if (viewModel.imageUploadInProgress) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(
+                onClick = { imagePickerLauncher.launch("image/*") },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Rounded.Image, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Pick image")
+            }
+            OutlinedButton(
+                onClick = { viewModel.updateWorkDraft { copy(imageUrl = "") } },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Clear image")
+            }
+        }
         Text(
             text = viewModel.adminWorkMessage,
             style = MaterialTheme.typography.bodyMedium,
