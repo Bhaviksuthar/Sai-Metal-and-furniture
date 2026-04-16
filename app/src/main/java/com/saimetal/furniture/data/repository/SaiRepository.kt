@@ -33,19 +33,14 @@ class LocalSaiRepository : SaiRepository {
         ServiceCategory("office", "Office & Commercial", "Counters, cabins, seating, storage", "Durable furniture and fabrication work for shops, clinics, and offices.", "From Rs 22,000", "office")
     )
 
-    override fun getGallery(): List<GalleryItem> = listOf(
-        GalleryItem("1", "Laser Cut Main Gate", "Metal Works", "Surat", "Powder-coated MS gate with geometric CNC cut pattern and side wicket door.", "Rs 55,000 - Rs 72,000", "8-10 days", listOf("Premium finish", "Outdoor", "Custom design"), 0xFF7A4B2A, ""),
-        GalleryItem("2", "Modern King Bed Set", "Furniture", "Navsari", "Metal and laminate bed with hydraulic storage and matching side units.", "Rs 38,000 - Rs 49,000", "6-8 days", listOf("Bedroom", "Storage", "Laminate"), 0xFF355C4A, ""),
-        GalleryItem("3", "Stair Railing Installation", "Metal Works", "Bardoli", "Matte black stair railing with wood-top handrest for duplex interiors.", "Rs 24,000 - Rs 34,000", "5-7 days", listOf("Indoor", "Safety", "Elegant"), 0xFF45546E, ""),
-        GalleryItem("4", "Showroom Display Counter", "Commercial", "Vapi", "Fabricated counter and wall display furniture with integrated storage.", "Rs 60,000 - Rs 85,000", "10-14 days", listOf("Retail", "Storage", "Custom size"), 0xFF735A2F, "")
-    )
+    override fun getGallery(): List<GalleryItem> = emptyList()
 
     override fun getInquiries(): List<Inquiry> = emptyList()
 
     override fun getBillingRecords(): List<BillingRecord> = emptyList()
 
     override fun getDashboardMetrics(): List<DashboardMetric> = listOf(
-        DashboardMetric("Active Works", "12", "4 deliveries due this week"),
+        DashboardMetric("Active Works", "0", "Add gallery works to see them here"),
         DashboardMetric("New Leads", "0", "Customer inquiries will appear here"),
         DashboardMetric("Pending Amount", "Rs 0", "Billing entries will update this total"),
         DashboardMetric("Client Rating", "4.9", "Based on recent project feedback")
